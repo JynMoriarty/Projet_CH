@@ -13,14 +13,13 @@ import datetime
 import warnings
 from pathlib import Path
 import joblib,pickle
-import plotly.express as px
 import matplotlib.pyplot as plt
 # Ignore multiple warning categories
 warnings.simplefilter("ignore", category=DeprecationWarning)
 warnings.simplefilter("ignore", category=FutureWarning)
 
 
-metric_test = 'MAE'
+metric_test = 'RMSE'
 
 def create_ferie(df):
     df.date = pd.to_datetime(df.date)
@@ -47,7 +46,7 @@ def create_best_model(df):
     def objective(trial):
         learning_rate = trial.suggest_float('learning_rate', 1e-3, 1e-1,log=True)
         max_depth = trial.suggest_int('max_depth', 3, 10)
-        min_child_weight = trial.suggest_int('min_child_weight', 1, 10)
+        min_child_weight = trial.suggest_int('min_child_weight', 1, 15)
         subsample = trial.suggest_float('subsample', 0.1, 1.0)
         colsample_bytree = trial.suggest_float('colsample_bytree', 0.1, 1.0)
         lags = trial.suggest_int('lags', 35, 364, step=7) # step means we only try multiples of 7 starting from 14
@@ -57,7 +56,7 @@ def create_best_model(df):
 
         model = MLForecast(models=models,
                         freq='D',
-                        lags=[1,7,14,21,28, lags],
+                        lags=[1,7,28,365, lags],
                     #   lag_transforms={
                     #     1: [(rolling_mean, 7), (rolling_max, 7), (rolling_min, 7)],
                     # }
@@ -94,7 +93,7 @@ def create_best_model(df):
     df_pred = df_pred.merge(data_test[['entite', 'date', 'recus']], on=['entite', 'date'], how='left')
     df_pred.rename(columns={'XGBRegressor':'pred'},inplace=True)
     study = optuna.create_study(direction='minimize')
-    study.optimize(objective, n_trials=30,callbacks=[callback]) #
+    study.optimize(objective, n_trials=50,callbacks=[callback]) #
     ##le choix du trial dépend de vous 20 permets de trouver les hyperparamètres à un modèle qui est assez bon mais vous pouvez essayez de choisir beaucoup plus de trials si
     # si vous voulez de meilleurs résultat n'hésitez pas à changer les suggests pour tester un large panel de paramètres la fonction objective
 
